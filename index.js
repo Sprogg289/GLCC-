@@ -37,6 +37,18 @@ const config = {
   applicationTimeout: 60000
 };
 
+// Add this temporarily to check your setup in the Railway logs
+console.log("--- CONFIG CHECK ---");
+Object.entries(config).forEach(([key, value]) => {
+  if (value === undefined) {
+    console.warn(`⚠️ WARNING: Variable "${key}" is missing!`);
+  } else {
+    console.log(`✅ ${key} is loaded.`);
+  }
+});
+console.log("--------------------");
+
+
 /* ================= APPLICATIONS ================= */
 const applications = {
   partnership: {
@@ -235,3 +247,4 @@ client.on(Events.MessageCreate, async message => {
 
 /* ================= LOGIN ================= */
 client.login(config.token);
+
