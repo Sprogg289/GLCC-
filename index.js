@@ -37,18 +37,6 @@ const config = {
   applicationTimeout: 60000
 };
 
-// Add this temporarily to check your setup in the Railway logs
-console.log("--- CONFIG CHECK ---");
-Object.entries(config).forEach(([key, value]) => {
-  if (value === undefined) {
-    console.warn(`⚠️ WARNING: Variable "${key}" is missing!`);
-  } else {
-    console.log(`✅ ${key} is loaded.`);
-  }
-});
-console.log("--------------------");
-
-
 /* ================= APPLICATIONS ================= */
 const applications = {
   partnership: {
@@ -125,7 +113,9 @@ client.on(Events.InteractionCreate, async interaction => {
       .setPlaceholder("Select ticket type")
       .addOptions(
         { label: "Support", value: "support" },
-        { label: "Report", value: "report" }
+        { label: "Report", value: "report" },
+        { label: "book a event", value: "event" },
+        { label: "Annual Leave", value: "annual leave" }
       );
 
     await ticketChannel.send({
@@ -247,4 +237,3 @@ client.on(Events.MessageCreate, async message => {
 
 /* ================= LOGIN ================= */
 client.login(config.token);
-
