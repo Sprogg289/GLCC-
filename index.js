@@ -40,7 +40,7 @@ const config = {
     footerText: "GL CC Team",
     ticketPanel: {
       title: "🎫 Support Tickets",
-      description: "Need help? Select a category below to open a private ticket with our staff team."
+      description: "Welcome To the Support Center! Please select the type of ticket you want to open from the menu below. Our team will assist you shortly."
     },
     appPanel: {
       title: "📄 Applications",
@@ -72,7 +72,11 @@ const applications = {
     questions: ["What is your Name?", "Company Name?", "Discord Username?", "Tell us about your company."]
   },
   staff: {
-    name: "Staff Application",
+    name: "Green Light CC - Apply CC Staff Form",
+    questions: ["Requirements: Own at least 2 DLCS. Must be able to join a VC and listen to instructions. Must Understand and follow instruction given in english. must be willing to follow instructions Must have a stable connection. Must use Green Light CC Profile. Must be Attend 1 event every 2 Months (this may change in future, Whats your name, what is your discord name, are you over the age of 18, Please Provide link to your TruckersMP Account below, do you lag in TMP, what Role are you appling for on, why do you want to apply for cc, Do you gave any CC experience, what DLCS do you own, How many hour do you have in ETS2, What SCS software titles do you currently own/play, do you gave any experience with being in a convoy control company, Tell us a bit about yourself what are your hobbies? why would you like to become a member of the cc team? what can YOU bring to the table!, How did you fine us?m, )"]
+  },
+  CCEventForm: {
+    name: "Need CC For Your Event Form",
     questions: ["Your Name?", "Your Discord Name?", "Why do you want to join staff?"]
   }
 };
@@ -389,7 +393,7 @@ client.on(Events.InteractionCreate, async interaction => {
       const appChannel = await client.channels.fetch(config.applicationPanelChannelId);
 
       const tMenu = new StringSelectMenuBuilder().setCustomId("ticket_select").setPlaceholder("Select ticket type").addOptions(
-        { label: "Support", value: "support", emoji: "🛠️" }, { label: "Report", value: "report", emoji: "⚠️" }
+        { label: "Support", value: "support", emoji: "🛠️" }, { label: "Report", value: "report", emoji: "⚠️" }, { label: "Book A Slot", value: "book_slot", emoji: "📅" }, { label: "Annual Leave", value: "annual_leave", emoji: "📅" }
       );
       const aMenu = new StringSelectMenuBuilder().setCustomId("application_select").setPlaceholder("Select application").addOptions(
         Object.keys(applications).map(k => ({ label: applications[k].name, value: k }))
