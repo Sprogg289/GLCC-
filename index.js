@@ -69,14 +69,10 @@ const commandUsage = new Map();
 const applications = {
   partnership: {
     name: "Partnership Form",
-    questions: ["What is your Name?", "Company Name?", "Discord Username?", "Tell us about your company."]
+    questions: [["Requirements: Own at least 2 DLCS. Must be able to join a VC and listen to instructions. Must Understand and follow instruction given in english. must be willing to follow instructions Must have a stable connection. Must use Green Light CC Profile. Must be Attend 1 event every 2 Months (this may change in future", "Whats your name", "what is your discord name", " are you over the age of 18?", "Please Provide link to your TruckersMP Account below", "do you lag in TMP", "what Role are you appling for on", "why do you want to apply for cc", "Do you gave any CC experience", "what DLCS do you own", "How many hour do you have in ETS2", " What SCS software titles do you currently own/play", "do you gave any experience with being in a convoy control company", "Tell us a bit about yourself what are your hobbies?", "why would you like to become a member of the cc team?", "what can YOU bring to the table!", "How did you fine us?"]]
   },
   staff: {
-    name: "Green Light CC - Apply CC Staff Form",
-    questions: ["Requirements: Own at least 2 DLCS. Must be able to join a VC and listen to instructions. Must Understand and follow instruction given in english. must be willing to follow instructions Must have a stable connection. Must use Green Light CC Profile. Must be Attend 1 event every 2 Months (this may change in future, Whats your name, what is your discord name, are you over the age of 18, Please Provide link to your TruckersMP Account below, do you lag in TMP, what Role are you appling for on, why do you want to apply for cc, Do you gave any CC experience, what DLCS do you own, How many hour do you have in ETS2, What SCS software titles do you currently own/play, do you gave any experience with being in a convoy control company, Tell us a bit about yourself what are your hobbies? why would you like to become a member of the cc team? what can YOU bring to the table!, How did you fine us?m, )"]
-  },
-  CCEventForm: {
-    name: "Need CC For Your Event Form",
+    name: "Staff Application",
     questions: ["Your Name?", "Your Discord Name?", "Why do you want to join staff?"]
   }
 };
