@@ -133,7 +133,7 @@ const applications = {
       "I understand that I have Booked Green Light Convoy Control Team To Do My Event. Thank You For Book Us Today for Your Event From  Green Light CC Team Founder"
     ]
   },
-  EventForm: {
+  DriverApplication: {
     name: "Green Light Convoy Control Apply To become as a driver",
     emoji: "🚚",
     questions: [
