@@ -493,7 +493,9 @@ client.on(Events.InteractionCreate, async interaction => {
         .setPlaceholder("Why are you contacting us?")
         .addOptions(
           { label: "Support", value: "support", emoji: "🛠️", description: "Get help with server issues" },
-          { label: "Report", value: "report", emoji: "⚠️", description: "Report a user or bug" }
+          { label: "Report", value: "report", emoji: "⚠️", description: "Report a user or bug" },
+          { label: "Book A Slot", value: "book_slot", emoji: "📅", description: "Book a slot for a convoy" },
+          { label: "Annual Leave", value: "annual_leave", emoji: "📅", description: "Request annual leave" }
         );
 
       const aMenu = new StringSelectMenuBuilder()
