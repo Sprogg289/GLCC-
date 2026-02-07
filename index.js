@@ -14,7 +14,8 @@ const {
   REST,
   Routes,
   StringSelectMenuBuilder,
-  AttachmentBuilder
+  AttachmentBuilder,
+  AuditLogEvent
 } = require("discord.js");
 
 const fs = require("fs");
@@ -32,7 +33,7 @@ const config = {
   applicationPanelChannelId: process.env.APPLICATION_PANEL_CHANNEL_ID,
   applicationReviewChannel: process.env.APPLICATION_REVIEW_CHANNEL_ID,
   transcriptChannel: process.env.TRANSCRIPT_CHANNEL_ID,
-  botStatsLog: process.env.BOT_STATS_Log,
+  botStatsLog: process.env.BOT_STATS_LOG_ID,
 
   embeds: {
     color: 0x55fe5c,
@@ -82,9 +83,11 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.DirectMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildModeration
   ],
-  partials: [Partials.Channel, Partials.Message]
+  partials: [Partials.Channel, Partials.Message, Partials.User, Partials.GuildMember]
 });
 
 const activeApplications = new Map();
@@ -135,6 +138,92 @@ function getUptime() {
   let seconds = Math.floor(totalSeconds % 60);
   return `${days}d ${hours}h ${minutes}m ${seconds}s`;
 }
+
+async function sendAutoLog(embed) {
+  try {
+    const channel = await client.channels.fetch(config.botStatsLog);
+    if (channel) channel.send({ embeds: [embed] });
+  } catch (e) {
+    console.error("Failed to send auto-log:", e);
+  }
+}
+
+/* ================= AUTO-LOGS (DELETE, EDIT, JOIN, LEAVE, KICK, BAN) ================= */
+
+client.on(Events.MessageDelete, async message => {
+  if (!message.guild || message.author?.bot) return;
+  const embed = new EmbedBuilder()
+    .setTitle("🗑️ Message Deleted")
+    .setColor(0xFF4B4B)
+    .addFields(
+      { name: "Author", value: `${message.author?.tag || "Unknown"}`, inline: true },
+      { name: "Channel", value: `${message.channel}`, inline: true },
+      { name: "Content", value: message.content?.substring(0, 1024) || "No text content" }
+    )
+    .setFooter({ text: config.embeds.footerText })
+    .setTimestamp();
+  sendAutoLog(embed);
+});
+
+client.on(Events.MessageUpdate, async (oldMsg, newMsg) => {
+  if (!oldMsg.guild || oldMsg.author?.bot || oldMsg.content === newMsg.content) return;
+  const embed = new EmbedBuilder()
+    .setTitle("📝 Message Edited")
+    .setColor(0xFFCC4B)
+    .addFields(
+      { name: "Author", value: `${oldMsg.author.tag}`, inline: true },
+      { name: "Channel", value: `${oldMsg.channel}`, inline: true },
+      { name: "Before", value: oldMsg.content?.substring(0, 512) || "Empty" },
+      { name: "After", value: newMsg.content?.substring(0, 512) || "Empty" }
+    )
+    .setFooter({ text: config.embeds.footerText })
+    .setTimestamp();
+  sendAutoLog(embed);
+});
+
+client.on(Events.GuildMemberAdd, member => {
+  const embed = new EmbedBuilder()
+    .setTitle("📥 Member Joined")
+    .setColor(0x55FE5C)
+    .setThumbnail(member.user.displayAvatarURL())
+    .addFields(
+      { name: "User", value: `${member.user.tag}`, inline: true },
+      { name: "ID", value: `${member.id}`, inline: true }
+    )
+    .setFooter({ text: config.embeds.footerText })
+    .setTimestamp();
+  sendAutoLog(embed);
+});
+
+client.on(Events.GuildMemberRemove, async member => {
+  const fetchedLogs = await member.guild.fetchAuditLogs({ limit: 1, type: AuditLogEvent.MemberKick });
+  const kickLog = fetchedLogs.entries.first();
+  const isKick = kickLog && kickLog.target.id === member.id && (Date.now() - kickLog.createdTimestamp < 5000);
+
+  const embed = new EmbedBuilder()
+    .setTitle(isKick ? "👢 Member Kicked" : "📤 Member Left")
+    .setColor(isKick ? 0xFFA500 : 0x808080)
+    .addFields(
+      { name: "User", value: `${member.user.tag}`, inline: true },
+      { name: "Reason", value: isKick ? (kickLog.reason || "No reason provided") : "Voluntary departure", inline: true }
+    )
+    .setFooter({ text: config.embeds.footerText })
+    .setTimestamp();
+  sendAutoLog(embed);
+});
+
+client.on(Events.GuildBanAdd, ban => {
+  const embed = new EmbedBuilder()
+    .setTitle("🔨 Member Banned")
+    .setColor(0x8B0000)
+    .addFields(
+      { name: "User", value: `${ban.user.tag}`, inline: true },
+      { name: "Reason", value: ban.reason || "No reason provided", inline: true }
+    )
+    .setFooter({ text: config.embeds.footerText })
+    .setTimestamp();
+  sendAutoLog(embed);
+});
 
 /* ================= READY ================= */
 client.once(Events.ClientReady, async () => {
@@ -194,7 +283,7 @@ client.on(Events.InteractionCreate, async interaction => {
       return interaction.reply({ embeds: [convoyEmbed], components: [row] });
     }
 
-    // Handle Convoy Buttons
+    // Handle Buttons
     if (interaction.isButton()) {
       if (interaction.customId === "convoy_check") {
         const editedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
@@ -214,9 +303,33 @@ client.on(Events.InteractionCreate, async interaction => {
         return interaction.update({ embeds: [finalEmbed], components: [] });
       }
 
+      // --- TICKET CLOSE WITH TRANSCRIPT ---
       if (interaction.customId === "ticket_close") {
-        await interaction.reply("Closing ticket...");
-        setTimeout(() => interaction.channel.delete().catch(() => {}), 3000);
+        await interaction.reply("⏳ Processing transcript and closing ticket...");
+        
+        const messages = await interaction.channel.messages.fetch({ limit: 100 });
+        const sorted = messages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+        let transcriptContent = `Ticket Transcript: ${interaction.channel.name}\nClosed By: ${interaction.user.tag}\n----------------------------------\n\n`;
+        
+        sorted.forEach(m => {
+          transcriptContent += `[${new Date(m.createdTimestamp).toLocaleString()}] ${m.author.tag}: ${m.content || "[No Text]"}\n`;
+        });
+
+        const fileName = `transcript-${interaction.channel.name}.txt`;
+        fs.writeFileSync(fileName, transcriptContent);
+
+        try {
+          const transChannel = await client.channels.fetch(config.transcriptChannel);
+          if (transChannel) {
+            await transChannel.send({
+              content: `📑 **Ticket Transcript**\nChannel: \`${interaction.channel.name}\`\nClosed By: ${interaction.user}`,
+              files: [new AttachmentBuilder(fileName)]
+            });
+          }
+        } catch (err) { console.error("Transcript send failed:", err); }
+
+        fs.unlinkSync(fileName);
+        setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
       }
     }
 
@@ -247,7 +360,7 @@ client.on(Events.InteractionCreate, async interaction => {
       const appChannel = await client.channels.fetch(config.applicationPanelChannelId);
 
       const tMenu = new StringSelectMenuBuilder().setCustomId("ticket_select").setPlaceholder("Select ticket type").addOptions(
-        { label: "Support", value: "support" }, { label: "Report", value: "report" }
+        { label: "Support", value: "support", emoji: "🛠️" }, { label: "Report", value: "report", emoji: "⚠️" }
       );
       const aMenu = new StringSelectMenuBuilder().setCustomId("application_select").setPlaceholder("Select application").addOptions(
         Object.keys(applications).map(k => ({ label: applications[k].name, value: k }))
@@ -280,7 +393,7 @@ client.on(Events.InteractionCreate, async interaction => {
           ]
         });
         const welcome = new EmbedBuilder().setTitle(config.embeds.welcomeTicket.title).setDescription(config.embeds.welcomeTicket.description).setFooter({ text: config.embeds.footerText }).setColor(config.embeds.color);
-        await channel.send({ content: `${interaction.user}`, embeds: [welcome], components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("ticket_close").setLabel("Close").setStyle(ButtonStyle.Danger))] });
+        await channel.send({ content: `${interaction.user} <@&${config.supportRoleId}>`, embeds: [welcome], components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("ticket_close").setLabel("Close & Transcript").setStyle(ButtonStyle.Danger))] });
         return interaction.reply({ content: `🎫 Ticket: ${channel}`, ephemeral: true });
       }
 
