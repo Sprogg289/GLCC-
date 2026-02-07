@@ -14,7 +14,8 @@ const {
   REST,
   Routes,
   StringSelectMenuBuilder,
-  AttachmentBuilder
+  AttachmentBuilder,
+  SectionBuilder
 } = require("discord.js");
 
 const fs = require("fs");
@@ -120,6 +121,13 @@ client.on(Events.InteractionCreate, async interaction => {
 
     await ticketChannel.send({
       embeds: [new EmbedBuilder().setTitle("🎫 Tickets").setColor(config.embedColor)],
+      description: "Select a ticket type to create a new ticket.",
+      Section: "Annual Leave is for requesting time off.",
+      section: "book a event is for reserving a time slot for an event.",
+      section: "Report is for reporting issues or users.",
+      section: "Support is for general help and inquiries.",
+      
+      section: "Please Select the appropriate ticket type for your needs.",
       components: [new ActionRowBuilder().addComponents(ticketMenu)]
     });
 
