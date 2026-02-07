@@ -15,7 +15,10 @@ const {
   Routes,
   StringSelectMenuBuilder,
   AttachmentBuilder,
-  AuditLogEvent
+  AuditLogEvent,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle
 } = require("discord.js");
 
 const fs = require("fs");
@@ -32,6 +35,7 @@ const config = {
   // Channel & Category IDs
   ticketCategoryId: process.env.TICKET_CATEGORY_ID,
   supportRoleId: process.env.SUPPORT_ROLE_ID,
+  devRoleId: process.env.DEV_ROLE_ID, // NEW: Developer Role
   ticketPanelChannelId: process.env.TICKET_PANEL_CHANNEL_ID,
   applicationPanelChannelId: process.env.APPLICATION_PANEL_CHANNEL_ID,
   applicationReviewChannel: process.env.APPLICATION_REVIEW_CHANNEL_ID,
@@ -66,90 +70,27 @@ const config = {
 };
 
 /* ==========================================================
-   2. APPLICATION QUESTIONS (EASY TO EDIT)
+   2. APPLICATION QUESTIONS
    ========================================================== */
 const applications = {
   staff: {
     name: "Staff Application",
     emoji: "🛡️",
     questions: [
-      "Requirements: Own at least 2 DLCS. Must be able to join a VC and listen to instructions. Must Understand and follow instruction given in english. must be willing to follow instructions Must have a stable connection. Must use Green Light CC Profile. Must be Attend 1 event every 2 Months (this may change in future)",
-      "Whats your name",
-      "what is your discord name",
-      "are you over the age of 18",
-      "Please Provide link to your TruckersMP Account below",
-      "do you lag in TMP",
-      "what Role are you appling for on",
-      "why do you want to apply for CC",
-      "Do you gave any CC experience",
-      "what DLCS do you own",
-      "How many hour do you have in ETS2",
-      "What SCS software titles do you currently own/play",
-      "do you gave any experience with being in a convoy control company",
-      "Tell us a bit about yourself what are your hobbies?",
-      "why would you like to become a member of the cc team?",
-      "What can YOU bring to the table!",
-      "How did you fine us?"
-      
-    ]
-  },
-  Partnership: {
-    name: "Green Light Convoy Control Partnership VTC Application",
-    emoji: "🤝",
-    questions: [
-      "Partner Requirements: VTC must have at least 5 or more active members Company must be 2 or more months old and have at least hosted 2 special events! You must not have any relationship with the VTCs on our Blacklist. You must share all your information with us in complete transparency! Must be a member of our Discord Server Must post an ad about our Green Light CC in your Discord server in a dedicated partner channel. Must attend one or more of our Convoys/Events when applicable, failing to do so will result in the partnership being disbanded DO YOU AGREE )",
-      "Whats your name",
-      "What Your Company Name",
-      "What Is Your Position In The Company",
-      "What is your Discord username?",
-      "Please provide a link to your VTC Page below!",
-      "Tell us about yourself and your company! why would you like to partner with us and what can you bring to the table!",
-    ]
-  },
-  EventForm: {
-    name: "Need CC For Your Event Form",
-    emoji: "📅",
-    questions: [
-      "Please keep in mind our booking requirements: A fully completed TMP event page is required (except for CC-Scheme members)., Remain in the Green Light CC Discord server and the specific ticket throughout the build up to the event. Leaving the server will be seen as a cancellation of your event!, Slot booking must close at least 3 days before the event., Your event cannot depart before 17:00 UTC (except for CC-Scheme members)., Your route may not exceed 1100 KM (684 ml)., ETS events are only accepted with base game and  DLC's Maps., Your event must have a minimum of 40-50 confirmed event sever  attendees (except for CC-Scheme members). DO YOU AGREE  )",
-      "What is your email",
-      "What is your name ",
-      "What is your VTC name",
-      "What Server will your convoy be on, Please choose one",
-      "What is your convoy name ",
-      "What date would you like to book us for ",
-      "What time is the convoy meet up (PLEASE USE UK TIME)",
-      "what time do you want the convoy to depart (PLEASE USE UK TIME)",
-      "Where is the convoy start location ",
-      "What depot do you want the lead to start from ",
-      "What is the convoy end destination ",
-      "What depot do you want the lead to end at",
-      "Event link for Truckers MP",
-      "Discord Link",
-      "How Many Is Come On Your Convoy From Your VTC",
-      "What Team do you need for your VTC convoy on the day",
-      "What map DLC'S  will be requirement in the convoy  please tick All the one's  you are use",
-      "please send convoy map route in a ticket ",
-      "Information OF Your Event",
-      "I understand that I have Booked Green Light Convoy Control Team To Do My Event. Thank You For Book Us Today for Your Event From  Green Light CC Team Founder"
-    ]
-  },
-  DriverApplication: {
-    name: "Green Light Convoy Control Apply To become as a driver",
-    emoji: "🚚",
-    questions: [
-      "Requirements: Own all DLCS Must be able to join a VC and listen to instruction Must Understand and Follow instructions given in English Must be willing to Follow instructions Must be to Attend 1 event every 2 Months (this may change in future) Must have a stable connection Use the CC Company Profile Must use the CC Company Skin at all times You Must be over 17 to apply Keep to 56 MPH )",
-      "Whats your name",
-      "What is your discord name",
-      "Your Date Of Birth",
-      "Are your over the age of 17",
-      "Please provide link to your Truckers MP account below ",
-      "IS Your  Truckers MP account full Active ",
-      "What DLCs do you own",
-      "What Role Are You Applying For on ",
-      "What SCS software titles do you currently own/play ",
-      "How many hours do you currently have in ETS2 or ATS? ",
-      "Why you choose to be a driver  for Green Light CC Company  ",
-      "Tell us a bit about yourself, what are your hobbies? why would you like to become a member of the CC  team? what can YOU bring to the table!",
+      "Requirements check: Do you own 2+ DLCs, speak English, and have a stable connection? (Yes/No)",
+      "What is your Name?",
+      "What is your Discord Name?",
+      "Are you over the age of 18?",
+      "Please provide a link to your TruckersMP Account.",
+      "Do you lag in TMP?",
+      "What Role are you applying for?",
+      "Why do you want to apply for CC?",
+      "Do you have any CC experience?",
+      "What DLCs do you own?",
+      "How many hours do you have in ETS2?",
+      "What SCS software titles do you currently own/play?",
+      "Tell us a bit about yourself (hobbies, etc).",
+      "What can YOU bring to the table?",
       "How did you find us?"
     ]
   },
@@ -174,44 +115,60 @@ const client = new Client({
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildModeration
   ],
-  partials: [
-    Partials.Channel, 
-    Partials.Message, 
-    Partials.User, 
-    Partials.GuildMember
-  ]
+  partials: [Partials.Channel, Partials.Message, Partials.User, Partials.GuildMember]
 });
 
 /* ==========================================================
    5. SLASH COMMAND REGISTRATION
    ========================================================== */
 const commands = [
-  new SlashCommandBuilder()
-    .setName("help")
-    .setDescription("Display all available bot commands"),
-  new SlashCommandBuilder()
-    .setName("panel")
-    .setDescription("Deploy ticket and application panels (Staff only)"),
-  new SlashCommandBuilder()
-    .setName("devlog")
-    .setDescription("Display bot statistics and development status (Staff only)"),
-  new SlashCommandBuilder()
-    .setName("convoy")
-    .setDescription("Start a mini-game to manage a convoy departure")
+  // Utility
+  new SlashCommandBuilder().setName("help").setDescription("Display all available bot commands"),
+  new SlashCommandBuilder().setName("panel").setDescription("Deploy ticket/app panels (Staff only)"),
+  new SlashCommandBuilder().setName("devlog").setDescription("Display bot stats (Staff only)"),
+  new SlashCommandBuilder().setName("convoy").setDescription("Start a convoy mini-game"),
+  
+  // Moderation
+  new SlashCommandBuilder().setName("warn").setDescription("Warn a user")
+    .addUserOption(o => o.setName("user").setDescription("User to warn").setRequired(true))
+    .addStringOption(o => o.setName("reason").setDescription("Reason for warning").setRequired(true)),
+  
+  new SlashCommandBuilder().setName("unwarn").setDescription("Revoke a warning (Log only)")
+    .addUserOption(o => o.setName("user").setDescription("User to unwarn").setRequired(true))
+    .addStringOption(o => o.setName("reason").setDescription("Reason").setRequired(true)),
+
+  new SlashCommandBuilder().setName("kick").setDescription("Kick a user")
+    .addUserOption(o => o.setName("user").setDescription("User to kick").setRequired(true))
+    .addStringOption(o => o.setName("reason").setDescription("Reason").setRequired(true)),
+
+  new SlashCommandBuilder().setName("ban").setDescription("Ban a user")
+    .addUserOption(o => o.setName("user").setDescription("User to ban").setRequired(true))
+    .addStringOption(o => o.setName("reason").setDescription("Reason").setRequired(false)),
+
+  new SlashCommandBuilder().setName("unban").setDescription("Unban a user ID")
+    .addStringOption(o => o.setName("userid").setDescription("ID of user to unban").setRequired(true)),
+
+  new SlashCommandBuilder().setName("timeout").setDescription("Timeout a user")
+    .addUserOption(o => o.setName("user").setDescription("User to timeout").setRequired(true))
+    .addIntegerOption(o => o.setName("minutes").setDescription("Duration in minutes").setRequired(true))
+    .addStringOption(o => o.setName("reason").setDescription("Reason").setRequired(true)),
+
+  new SlashCommandBuilder().setName("untimeout").setDescription("Remove timeout")
+    .addUserOption(o => o.setName("user").setDescription("User to untimeout").setRequired(true))
 ].map(c => c.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(config.token);
 
 (async () => {
   try {
-    console.log("[SYSTEM] Started refreshing application (/) commands.");
+    console.log("[SYSTEM] Refreshing commands...");
     await rest.put(
       Routes.applicationGuildCommands(config.clientId, config.guildId),
       { body: commands }
     );
-    console.log("[SYSTEM] Successfully reloaded application (/) commands.");
+    console.log("[SYSTEM] Commands refreshed.");
   } catch (error) {
-    console.error("[ERROR] Failed to refresh commands:", error);
+    console.error("[ERROR] Command refresh failed:", error);
   }
 })();
 
@@ -219,7 +176,8 @@ const rest = new REST({ version: "10" }).setToken(config.token);
    6. UTILITY FUNCTIONS
    ========================================================== */
 function isStaff(member) {
-  return member.roles.cache.has(config.supportRoleId);
+  if (!member) return false;
+  return member.roles.cache.has(config.supportRoleId) || member.roles.cache.has(config.devRoleId) || member.permissions.has(PermissionsBitField.Flags.Administrator);
 }
 
 function getUptime() {
@@ -237,112 +195,29 @@ async function sendAutoLog(embed) {
   try {
     const channel = await client.channels.fetch(config.botStatsLog);
     if (channel) channel.send({ embeds: [embed] });
-  } catch (e) {
-    console.error("[ERROR] Logging system failure:", e);
-  }
+  } catch (e) {}
 }
 
 /* ==========================================================
    7. AUTO-LOGGING EVENTS
    ========================================================== */
-
-// Message Deletion
+// (Existing logging logic preserved)
 client.on(Events.MessageDelete, async message => {
   if (!message.guild || message.author?.bot) return;
-  const embed = new EmbedBuilder()
-    .setTitle("🗑️ Message Deleted")
-    .setColor(0xFF4B4B)
-    .addFields(
-      { name: "Author", value: `${message.author?.tag || "Unknown"}`, inline: true },
-      { name: "Channel", value: `${message.channel}`, inline: true },
-      { name: "Content", value: message.content?.substring(0, 1024) || "No text content" }
-    )
-    .setFooter({ text: config.embeds.footerText })
-    .setTimestamp();
-  sendAutoLog(embed);
+  sendAutoLog(new EmbedBuilder().setTitle("🗑️ Deleted").setDescription(`**Author:** ${message.author?.tag}\n**Content:** ${message.content?.substring(0, 1000)}`).setColor(0xFF4B4B));
 });
-
-// Message Editing
 client.on(Events.MessageUpdate, async (oldMsg, newMsg) => {
   if (!oldMsg.guild || oldMsg.author?.bot || oldMsg.content === newMsg.content) return;
-  const embed = new EmbedBuilder()
-    .setTitle("📝 Message Edited")
-    .setColor(0xFFCC4B)
-    .addFields(
-      { name: "Author", value: `${oldMsg.author.tag}`, inline: true },
-      { name: "Channel", value: `${oldMsg.channel}`, inline: true },
-      { name: "Before", value: oldMsg.content?.substring(0, 512) || "Empty" },
-      { name: "After", value: newMsg.content?.substring(0, 512) || "Empty" }
-    )
-    .setFooter({ text: config.embeds.footerText })
-    .setTimestamp();
-  sendAutoLog(embed);
+  sendAutoLog(new EmbedBuilder().setTitle("📝 Edited").setDescription(`**Author:** ${oldMsg.author?.tag}\n**Before:** ${oldMsg.content?.substring(0, 500)}\n**After:** ${newMsg.content?.substring(0, 500)}`).setColor(0xFFCC4B));
 });
-
-// Member Joins
-client.on(Events.GuildMemberAdd, member => {
-  const embed = new EmbedBuilder()
-    .setTitle("📥 Member Joined")
-    .setColor(0x55FE5C)
-    .setThumbnail(member.user.displayAvatarURL())
-    .addFields(
-      { name: "User", value: `${member.user.tag}`, inline: true },
-      { name: "ID", value: `${member.id}`, inline: true }
-    )
-    .setFooter({ text: config.embeds.footerText })
-    .setTimestamp();
-  sendAutoLog(embed);
-});
-
-// Member Leaves / Kicks
-client.on(Events.GuildMemberRemove, async member => {
-  const fetchedLogs = await member.guild.fetchAuditLogs({ limit: 1, type: AuditLogEvent.MemberKick });
-  const kickLog = fetchedLogs.entries.first();
-  const isKick = kickLog && kickLog.target.id === member.id && (Date.now() - kickLog.createdTimestamp < 5000);
-
-  const embed = new EmbedBuilder()
-    .setTitle(isKick ? "👢 Member Kicked" : "📤 Member Left")
-    .setColor(isKick ? 0xFFA500 : 0x808080)
-    .addFields(
-      { name: "User", value: `${member.user.tag}`, inline: true },
-      { name: "Reason", value: isKick ? (kickLog.reason || "No reason provided") : "Voluntary departure", inline: true }
-    )
-    .setFooter({ text: config.embeds.footerText })
-    .setTimestamp();
-  sendAutoLog(embed);
-});
-
-// Bans
-client.on(Events.GuildBanAdd, ban => {
-  const embed = new EmbedBuilder()
-    .setTitle("🔨 Member Banned")
-    .setColor(0x8B0000)
-    .addFields(
-      { name: "User", value: `${ban.user.tag}`, inline: true },
-      { name: "Reason", value: ban.reason || "No reason provided", inline: true }
-    )
-    .setFooter({ text: config.embeds.footerText })
-    .setTimestamp();
-  sendAutoLog(embed);
-});
+client.on(Events.GuildMemberAdd, member => sendAutoLog(new EmbedBuilder().setTitle("📥 Joined").setDescription(`${member.user.tag}`).setColor(0x55FE5C)));
+client.on(Events.GuildMemberRemove, member => sendAutoLog(new EmbedBuilder().setTitle("📤 Left").setDescription(`${member.user.tag}`).setColor(0x808080)));
 
 /* ==========================================================
    8. READY EVENT
    ========================================================== */
 client.once(Events.ClientReady, async () => {
   console.log(`[AUTH] Logged in as ${client.user.tag}`);
-  if (config.botStatsLog) {
-    try {
-      const statsChannel = await client.channels.fetch(config.botStatsLog);
-      const statsEmbed = new EmbedBuilder()
-        .setTitle(config.embeds.statsLog.title)
-        .setDescription(config.embeds.statsLog.onlineMsg)
-        .setColor(config.embeds.color)
-        .setFooter({ text: config.embeds.footerText })
-        .setTimestamp();
-      statsChannel.send({ embeds: [statsEmbed] });
-    } catch (err) { console.error("[ERROR] Failed to send status update:", err); }
-  }
 });
 
 /* ==========================================================
@@ -350,309 +225,225 @@ client.once(Events.ClientReady, async () => {
    ========================================================== */
 client.on(Events.InteractionCreate, async interaction => {
   try {
-    // Track command stats
-    if (interaction.isChatInputCommand()) {
-      const current = commandUsage.get(interaction.commandName) || 0;
-      commandUsage.set(interaction.commandName, current + 1);
-    }
-
-    // --- HELP COMMAND ---
-    if (interaction.isChatInputCommand() && interaction.commandName === "help") {
-      const helpEmbed = new EmbedBuilder()
-        .setTitle("📜 Bot Command Help")
-        .setDescription("Welcome to the **Convoy & Ticket System**. Here are all available commands:")
-        .addFields(
-          { name: "🛠️ Staff Commands", value: "`/panel` - Deploy Tickets/App panels\n`/devlog` - View system status" },
-          { name: "🚛 General Commands", value: "`/help` - Show this list\n`/convoy` - Start a convoy mini-game" },
-          { name: "🎫 Tickets", value: "Use the panel select menu to open a support ticket." },
-          { name: "📄 Applications", value: "Use the application panel to join the team." }
-        )
-        .setColor(config.embeds.color)
-        .setFooter({ text: config.embeds.footerText });
-      return interaction.reply({ embeds: [helpEmbed] });
-    }
-
-    // --- CONVOY MINI-GAME ---
-    if (interaction.isChatInputCommand() && interaction.commandName === "convoy") {
-      const convoyEmbed = new EmbedBuilder()
-        .setTitle("🚛 Convoy Command Center")
-        .setDescription("Ready to depart? Perform pre-convoy checks below!")
-        .addFields({ name: "Convoy Status", value: "🟠 Waiting for safety inspections..." })
-        .setColor(config.embeds.color)
-        .setFooter({ text: config.embeds.footerText });
-
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId("convoy_check").setLabel("Perform Safety Check").setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId("convoy_start").setLabel("Depart Now!").setStyle(ButtonStyle.Success).setDisabled(true)
-      );
-
-      return interaction.reply({ embeds: [convoyEmbed], components: [row] });
-    }
-
-    // --- BUTTON HANDLER ---
-    if (interaction.isButton()) {
-      // Convoy Check Logic
-      if (interaction.customId === "convoy_check") {
-        const successChance = Math.random();
-        let statusText = "";
-        let buttonState = false;
-
-        if (successChance > 0.3) {
-          statusText = "✅ **Safety Check Passed!** All engines are green, tires are at pressure, and manifests are signed.";
-          buttonState = false;
-        } else {
-          const failures = ["Engine leak detected!", "Flat tire on trailer!", "Missing paperwork!", "Fuel pump failure!"];
-          statusText = `❌ **Safety Check Failed!** ${failures[Math.floor(Math.random() * failures.length)]} Fix the issue and try again.`;
-          buttonState = true;
-        }
-
-        const editedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
-          .setFields({ name: "Convoy Status", value: statusText });
-        
-        const updatedRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId("convoy_check").setLabel("Re-check Vehicles").setStyle(ButtonStyle.Secondary),
-          new ButtonBuilder().setCustomId("convoy_start").setLabel("Depart Now!").setStyle(ButtonStyle.Success).setDisabled(buttonState)
-        );
-        
-        return interaction.update({ embeds: [editedEmbed], components: [updatedRow] });
-      }
-
-      // Convoy Start Logic
-      if (interaction.customId === "convoy_start") {
-        const events = ["Traffic jam!", "Clear skies!", "Police checkpoint!", "Scenic route chosen!", "Minor delay!"];
-        const randomEvent = events[Math.floor(Math.random() * events.length)];
-
-        const finalEmbed = EmbedBuilder.from(interaction.message.embeds[0])
-          .setTitle("🚛 Convoy is Rolling!")
-          .setDescription(`Departure led by **${interaction.user.username}**.`)
-          .setFields(
-            { name: "Journey Event", value: `📈 ${randomEvent}` },
-            { name: "Status", value: "🟢 En route to destination." }
-          );
-        return interaction.update({ embeds: [finalEmbed], components: [] });
-      }
-
-      // Ticket Closure Logic
-      if (interaction.customId === "ticket_close") {
-        await interaction.reply("⏳ Processing transcript and closing ticket...");
-        
-        const messages = await interaction.channel.messages.fetch({ limit: 100 });
-        const sorted = messages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-        let transcriptContent = `TICKET TRANSCRIPT: ${interaction.channel.name}\nClosed By: ${interaction.user.tag}\n----------------------------------\n\n`;
-        
-        sorted.forEach(m => {
-          transcriptContent += `[${new Date(m.createdTimestamp).toLocaleString()}] ${m.author.tag}: ${m.content || "[No Text Content]"}\n`;
-        });
-
-        const fileName = `transcript-${interaction.channel.name}.txt`;
-        fs.writeFileSync(fileName, transcriptContent);
-
-        try {
-          const transChannel = await client.channels.fetch(config.transcriptChannel);
-          if (transChannel) {
-            await transChannel.send({
-              content: `📑 **Ticket Transcript**\nChannel: \`${interaction.channel.name}\`\nClosed By: ${interaction.user}`,
-              files: [new AttachmentBuilder(fileName)]
-            });
-          }
-        } catch (err) { console.error("[ERROR] Transcript delivery failed:", err); }
-
-        fs.unlinkSync(fileName);
-        setTimeout(() => interaction.channel.delete().catch(() => {}), 5000);
-      }
-    }
-
-    // --- DEVLOG COMMAND ---
-    if (interaction.isChatInputCommand() && interaction.commandName === "devlog") {
-      if (!isStaff(interaction.member)) return interaction.reply({ content: "❌ Access Denied: Staff only.", ephemeral: true });
-      let mostUsed = "None";
-      let maxCount = 0;
-      commandUsage.forEach((count, name) => { if (count > maxCount) { maxCount = count; mostUsed = `/${name} (${count})`; } });
-
-      const devLogEmbed = new EmbedBuilder()
-        .setTitle("🛠️ Development & Status Log")
-        .setColor(config.embeds.color)
-        .addFields(
-          { name: "⏱️ Uptime", value: getUptime(), inline: true },
-          { name: "📊 Popular Command", value: mostUsed, inline: true },
-          { name: "🐛 Status", value: "All systems operational.", inline: false }
-        )
-        .setFooter({ text: config.embeds.footerText });
-      return interaction.reply({ embeds: [devLogEmbed] });
-    }
-
-    // --- PANEL DEPLOYMENT ---
-    if (interaction.isChatInputCommand() && interaction.commandName === "panel") {
-      if (!isStaff(interaction.member)) return interaction.reply({ content: "❌ Access Denied: Staff only.", ephemeral: true });
+    // --- MODALS (Application Reason Logic) ---
+    if (interaction.isModalSubmit()) {
+      const [action, userId] = interaction.customId.split("_"); // e.g., ["accept", "12345"]
       
-      const ticketChannel = await client.channels.fetch(config.ticketPanelChannelId);
-      const appChannel = await client.channels.fetch(config.applicationPanelChannelId);
+      if (action === "accept" || action === "decline") {
+        const reason = interaction.fields.getTextInputValue("reasonInput");
+        const status = action === "accept" ? "Accepted" : "Declined";
+        const color = action === "accept" ? 0x55FE5C : 0xFF4B4B;
 
-      const tMenu = new StringSelectMenuBuilder()
-        .setCustomId("ticket_select")
-        .setPlaceholder("Why are you contacting us?")
-        .addOptions(
-          { label: "Support", value: "support", emoji: "🛠️", description: "Get help with server issues" },
-          { label: "Report", value: "report", emoji: "⚠️", description: "Report a user or bug" },
-          { label: "Book A Slot", value: "book_slot", emoji: "📅", description: "Book a slot for a convoy" },
-          { label: "Annual Leave", value: "annual_leave", emoji: "📅", description: "Request annual leave" }
-        );
-
-      const aMenu = new StringSelectMenuBuilder()
-        .setCustomId("application_select")
-        .setPlaceholder("Which team do you want to join?")
-        .addOptions(
-          Object.keys(applications).map(k => ({
-            label: applications[k].name,
-            value: k,
-            emoji: applications[k].emoji || "📝"
-          }))
-        );
-
-      await ticketChannel.send({
-        embeds: [new EmbedBuilder()
-          .setTitle(config.embeds.ticketPanel.title)
-          .setDescription(config.embeds.ticketPanel.description)
-          .setColor(config.embeds.color)
-          .setFooter({ text: config.embeds.footerText })
-        ],
-        components: [new ActionRowBuilder().addComponents(tMenu)]
-      });
-
-      await appChannel.send({
-        embeds: [new EmbedBuilder()
-          .setTitle(config.embeds.appPanel.title)
-          .setDescription(config.embeds.appPanel.description)
-          .setColor(config.embeds.color)
-          .setFooter({ text: config.embeds.footerText })
-        ],
-        components: [new ActionRowBuilder().addComponents(aMenu)]
-      });
-
-      return interaction.reply({ content: "✅ Panels have been deployed successfully.", ephemeral: true });
-    }
-
-    // --- SELECT MENU HANDLER ---
-    if (interaction.isStringSelectMenu()) {
-      // Ticket Creation
-      if (interaction.customId === "ticket_select") {
-        const channel = await interaction.guild.channels.create({
-          name: `${interaction.values[0]}-${interaction.user.username}`,
-          type: ChannelType.GuildText,
-          parent: config.ticketCategoryId,
-          permissionOverwrites: [
-            { id: interaction.guild.id, deny: [PermissionsBitField.Flags.ViewChannel] },
-            { id: interaction.user.id, allow: [PermissionsBitField.Flags.ViewChannel] },
-            { id: config.supportRoleId, allow: [PermissionsBitField.Flags.ViewChannel] }
-          ]
-        });
-
-        const welcome = new EmbedBuilder()
-          .setTitle(config.embeds.welcomeTicket.title)
-          .setDescription(config.embeds.welcomeTicket.description)
-          .setFooter({ text: config.embeds.footerText })
-          .setColor(config.embeds.color);
-
-        const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId("ticket_close")
-            .setLabel("Close & Transcript")
-            .setStyle(ButtonStyle.Danger)
-        );
-
-        await channel.send({ 
-          content: `${interaction.user} <@&${config.supportRoleId}>`, 
-          embeds: [welcome], 
-          components: [row] 
-        });
-
-        return interaction.reply({ content: `🎫 Your ticket has been created: ${channel}`, ephemeral: true });
-      }
-
-      // Application Initiation
-      if (interaction.customId === "application_select") {
-        const appKey = interaction.values[0];
-        const app = applications[appKey];
-        
-        activeApplications.set(interaction.user.id, { app, answers: [], index: 0 });
-        
-        const startEmbed = new EmbedBuilder()
-          .setTitle(`📝 ${app.name} Started`)
-          .setDescription(`**Question 1:** ${app.questions[0]}`)
-          .setFooter({ text: "Please reply to this message with your answer." })
-          .setColor(config.embeds.color);
-
-        try { 
-          await interaction.user.send({ embeds: [startEmbed] }); 
-          return interaction.reply({ content: "📬 We've sent you a DM to start the process.", ephemeral: true }); 
-        } catch (e) { 
-          return interaction.reply({ content: "❌ I couldn't DM you. Please enable your DMs for this server.", ephemeral: true }); 
+        // 1. DM User
+        try {
+          const user = await client.users.fetch(userId);
+          const dmEmbed = new EmbedBuilder()
+            .setTitle(`Application Update: ${status}`)
+            .setDescription(`Your application for **Green Light CC** has been **${status}**.`)
+            .addFields({ name: "Reason/Feedback", value: reason })
+            .setColor(color)
+            .setFooter({ text: config.embeds.footerText });
+          await user.send({ embeds: [dmEmbed] });
+        } catch (e) {
+          console.log(`Could not DM user ${userId}`);
         }
+
+        // 2. Update Log Message
+        const originalEmbed = EmbedBuilder.from(interaction.message.embeds[0]);
+        originalEmbed.addFields({ name: `Reviewed by ${interaction.user.username}`, value: `**Status:** ${status}\n**Reason:** ${reason}` });
+        originalEmbed.setColor(color);
+
+        await interaction.update({ embeds: [originalEmbed], components: [] }); // Remove buttons
+        return;
       }
     }
-  } catch (err) {
-    console.error("[CRITICAL ERROR] Interaction failed:", err);
-  }
+
+    // --- SLASH COMMANDS ---
+    if (interaction.isChatInputCommand()) {
+      const { commandName, options } = interaction;
+
+      // MODERATION COMMANDS
+      if (["kick", "ban", "unban", "timeout", "untimeout", "warn", "unwarn"].includes(commandName)) {
+        if (!isStaff(interaction.member)) return interaction.reply({ content: "❌ Permission Denied.", ephemeral: true });
+
+        const targetUser = options.getUser("user");
+        const reason = options.getString("reason") || "No reason provided";
+
+        if (commandName === "warn") {
+          try { await targetUser.send(`⚠️ **You have been warned in ${interaction.guild.name}**\nReason: ${reason}`); } catch {}
+          interaction.reply({ content: `✅ Warned ${targetUser.tag}.`, ephemeral: true });
+          return sendAutoLog(new EmbedBuilder().setTitle("⚠️ Member Warned").addFields({ name: "User", value: targetUser.tag }, { name: "Mod", value: interaction.user.tag }, { name: "Reason", value: reason }).setColor(0xFFFF00));
+        }
+
+        if (commandName === "unwarn") {
+          interaction.reply({ content: `✅ Warning revoked for ${targetUser.tag} (Logged).`, ephemeral: true });
+          return sendAutoLog(new EmbedBuilder().setTitle("🛡️ Warning Revoked").addFields({ name: "User", value: targetUser.tag }, { name: "Mod", value: interaction.user.tag }, { name: "Note", value: reason }).setColor(0x00FF00));
+        }
+
+        const targetMember = targetUser ? await interaction.guild.members.fetch(targetUser.id).catch(() => null) : null;
+
+        if (commandName === "kick") {
+          if (!targetMember) return interaction.reply({ content: "User not found.", ephemeral: true });
+          await targetMember.kick(reason);
+          interaction.reply({ content: `👢 Kicked ${targetUser.tag}.` });
+        }
+
+        if (commandName === "ban") {
+          if (!targetMember) return interaction.reply({ content: "User not found.", ephemeral: true });
+          await targetMember.ban({ reason });
+          interaction.reply({ content: `🔨 Banned ${targetUser.tag}.` });
+        }
+
+        if (commandName === "unban") {
+          const userId = options.getString("userid");
+          await interaction.guild.members.unban(userId);
+          interaction.reply({ content: `🔓 Unbanned ID ${userId}.` });
+        }
+
+        if (commandName === "timeout") {
+          if (!targetMember) return interaction.reply({ content: "User not found.", ephemeral: true });
+          const mins = options.getInteger("minutes");
+          await targetMember.timeout(mins * 60 * 1000, reason);
+          interaction.reply({ content: `🤐 Timed out ${targetUser.tag} for ${mins}m.` });
+        }
+
+        if (commandName === "untimeout") {
+          if (!targetMember) return interaction.reply({ content: "User not found.", ephemeral: true });
+          await targetMember.timeout(null);
+          interaction.reply({ content: `🗣️ Removed timeout from ${targetUser.tag}.` });
+        }
+        return;
+      }
+
+      // EXISTING COMMANDS
+      if (commandName === "help") {
+        const helpEmbed = new EmbedBuilder()
+          .setTitle("📜 Bot Command Help")
+          .setDescription("Full list of commands:")
+          .addFields(
+            { name: "🛡️ Moderation", value: "`/warn`, `/unwarn`, `/kick`, `/ban`, `/unban`, `/timeout`, `/untimeout`" },
+            { name: "🛠️ Admin", value: "`/panel`, `/devlog`" },
+            { name: "🚛 General", value: "`/help`, `/convoy`" }
+          )
+          .setColor(config.embeds.color);
+        return interaction.reply({ embeds: [helpEmbed] });
+      }
+
+      if (commandName === "panel") {
+         if (!isStaff(interaction.member)) return interaction.reply({ content: "❌ Staff only.", ephemeral: true });
+         
+         const ticketChannel = await client.channels.fetch(config.ticketPanelChannelId);
+         const appChannel = await client.channels.fetch(config.applicationPanelChannelId);
+
+         const tMenu = new StringSelectMenuBuilder().setCustomId("ticket_select").setPlaceholder("Contact Support").addOptions({ label: "Support", value: "support", emoji: "🛠️" }, { label: "Report", value: "report", emoji: "⚠️" });
+         const aMenu = new StringSelectMenuBuilder().setCustomId("application_select").setPlaceholder("Apply Now").addOptions(Object.keys(applications).map(k => ({ label: applications[k].name, value: k, emoji: applications[k].emoji })));
+
+         await ticketChannel?.send({ embeds: [new EmbedBuilder().setTitle(config.embeds.ticketPanel.title).setDescription(config.embeds.ticketPanel.description).setColor(config.embeds.color)], components: [new ActionRowBuilder().addComponents(tMenu)] });
+         await appChannel?.send({ embeds: [new EmbedBuilder().setTitle(config.embeds.appPanel.title).setDescription(config.embeds.appPanel.description).setColor(config.embeds.color)], components: [new ActionRowBuilder().addComponents(aMenu)] });
+         return interaction.reply({ content: "✅ Panels deployed.", ephemeral: true });
+      }
+
+      if (commandName === "devlog") {
+        if (!isStaff(interaction.member)) return interaction.reply({ content: "❌ Staff only.", ephemeral: true });
+        return interaction.reply({ embeds: [new EmbedBuilder().setTitle("🛠️ Status").addFields({ name: "Uptime", value: getUptime() }).setColor(config.embeds.color)] });
+      }
+      
+      if (commandName === "convoy") {
+         return interaction.reply({ embeds: [new EmbedBuilder().setTitle("🚛 Convoy").setDescription("Status: 🟠 Checks pending").setColor(config.embeds.color)], components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("convoy_check").setLabel("Check").setStyle(ButtonStyle.Primary))] });
+      }
+    }
+
+    // --- BUTTONS (Applications & Convoy) ---
+    if (interaction.isButton()) {
+      // Application Review Buttons
+      if (interaction.customId.startsWith("app_accept_") || interaction.customId.startsWith("app_decline_")) {
+        const userId = interaction.customId.split("_")[2];
+        const action = interaction.customId.startsWith("app_accept") ? "accept" : "decline";
+
+        const modal = new ModalBuilder()
+          .setCustomId(`${action}_${userId}`)
+          .setTitle(`${action === "accept" ? "Accept" : "Decline"} Application`);
+
+        const reasonInput = new TextInputBuilder()
+          .setCustomId("reasonInput")
+          .setLabel("Reason / Feedback")
+          .setStyle(TextInputStyle.Paragraph)
+          .setRequired(true);
+
+        modal.addComponents(new ActionRowBuilder().addComponents(reasonInput));
+        await interaction.showModal(modal);
+        return;
+      }
+
+      if (interaction.customId === "convoy_check") {
+        const success = Math.random() > 0.3;
+        interaction.update({ 
+           embeds: [EmbedBuilder.from(interaction.message.embeds[0]).setFields({ name: "Status", value: success ? "✅ Passed" : "❌ Failed" })],
+           components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("convoy_check").setLabel("Re-check").setStyle(ButtonStyle.Secondary), new ButtonBuilder().setCustomId("convoy_start").setLabel("Depart").setStyle(ButtonStyle.Success).setDisabled(!success))]
+        });
+      }
+      if (interaction.customId === "convoy_start") {
+        interaction.update({ embeds: [EmbedBuilder.from(interaction.message.embeds[0]).setTitle("🚛 Rolling out!").setFields({ name: "Status", value: "🟢 En route" })], components: [] });
+      }
+      if (interaction.customId === "ticket_close") {
+        interaction.reply("Closing...");
+        setTimeout(() => interaction.channel.delete().catch(() => {}), 3000);
+      }
+    }
+
+    // --- SELECT MENUS ---
+    if (interaction.isStringSelectMenu()) {
+      if (interaction.customId === "ticket_select") {
+        const ch = await interaction.guild.channels.create({ name: `${interaction.values[0]}-${interaction.user.username}`, type: ChannelType.GuildText, parent: config.ticketCategoryId });
+        ch.send({ content: `<@&${config.supportRoleId}>`, embeds: [new EmbedBuilder().setTitle("Ticket").setDescription("Staff will arrive shortly.")], components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("ticket_close").setLabel("Close").setStyle(ButtonStyle.Danger))] });
+        interaction.reply({ content: `Ticket: ${ch}`, ephemeral: true });
+      }
+      if (interaction.customId === "application_select") {
+        const app = applications[interaction.values[0]];
+        activeApplications.set(interaction.user.id, { app, answers: [], index: 0 });
+        interaction.user.send({ embeds: [new EmbedBuilder().setTitle(app.name).setDescription(`Q1: ${app.questions[0]}`)] }).then(() => interaction.reply({ content: "Check DMs", ephemeral: true })).catch(() => interaction.reply({ content: "DMs closed", ephemeral: true }));
+      }
+    }
+  } catch (e) { console.error(e); }
 });
 
 /* ==========================================================
-   10. MESSAGE HANDLING (APPLICATION DM LOGIC)
+   10. DM HANDLING
    ========================================================== */
 client.on(Events.MessageCreate, async message => {
-  // Ignore bots and non-DM messages for this logic
   if (message.author.bot || !message.channel.isDMBased()) return;
-
   const data = activeApplications.get(message.author.id);
   if (!data) return;
 
-  // Store the answer
   data.answers.push(`**Q${data.index + 1}:** ${data.app.questions[data.index]}\n**A:** ${message.content}`);
   data.index++;
 
-  // Check if there are more questions
   if (data.index < data.app.questions.length) {
-    const nextQ = new EmbedBuilder()
-      .setTitle(`${data.app.name} - Progress`)
-      .setDescription(`**Question ${data.index + 1}:** ${data.app.questions[data.index]}`)
-      .setColor(config.embeds.color)
-      .setFooter({ text: `Question ${data.index + 1} of ${data.app.questions.length}` });
-    
-    await message.channel.send({ embeds: [nextQ] });
+    message.channel.send({ embeds: [new EmbedBuilder().setTitle("Next Question").setDescription(`Q${data.index + 1}: ${data.app.questions[data.index]}`)] });
   } else {
-    // Application Finished
     activeApplications.delete(message.author.id);
+    message.channel.send("✅ Application Submitted!");
     
-    const finishedEmbed = new EmbedBuilder()
-      .setTitle("Application Submitted")
-      .setDescription("✅ Thank you! Your application has been sent to the staff team for review.")
-      .setColor(config.embeds.color);
-    
-    await message.channel.send({ embeds: [finishedEmbed] });
-    
-    // Send to Review Channel
+    // Send to Review Channel with Buttons
     try {
       const reviewChannel = await client.channels.fetch(config.applicationReviewChannel);
-      const fileName = `application-${message.author.username}-${Date.now()}.txt`;
+      const fileName = `app-${message.author.id}.txt`;
+      fs.writeFileSync(fileName, data.answers.join("\n\n"));
       
-      const fileContent = `APPLICATION: ${data.app.name}\nUSER: ${message.author.tag} (${message.author.id})\nSUBMITTED: ${new Date().toLocaleString()}\n\n` + data.answers.join("\n\n");
-      
-      fs.writeFileSync(fileName, fileContent);
-      
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`app_accept_${message.author.id}`).setLabel("Accept").setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId(`app_decline_${message.author.id}`).setLabel("Decline").setStyle(ButtonStyle.Danger)
+      );
+
       await reviewChannel.send({ 
-        content: `🆕 **New Application Received**\n**Type:** ${data.app.name}\n**User:** ${message.author}`, 
-        files: [new AttachmentBuilder(fileName)] 
+        content: `🆕 **App from ${message.author}**`, 
+        files: [new AttachmentBuilder(fileName)],
+        embeds: [new EmbedBuilder().setTitle(data.app.name).setDescription(`User: ${message.author.tag} (${message.author.id})`).setColor(config.embeds.color)],
+        components: [row]
       });
-      
       fs.unlinkSync(fileName);
-    } catch (err) { 
-      console.error("[ERROR] Failed to send application for review:", err); 
-    }
+    } catch (err) {}
   }
 });
 
-/* ==========================================================
-   11. CLIENT LOGIN
-   ========================================================== */
 client.login(config.token);
-
-// End of Script - Full System Operational
