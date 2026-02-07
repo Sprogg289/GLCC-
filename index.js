@@ -93,7 +93,66 @@ const applications = {
       
     ]
   },
-  
+  Partnership: {
+    name: "Green Light Convoy Control Partnership VTC Application",
+    emoji: "🤝",
+    questions: [
+      "Partner Requirements: VTC must have at least 5 or more active members Company must be 2 or more months old and have at least hosted 2 special events! You must not have any relationship with the VTCs on our Blacklist. You must share all your information with us in complete transparency! Must be a member of our Discord Server Must post an ad about our Green Light CC in your Discord server in a dedicated partner channel. Must attend one or more of our Convoys/Events when applicable, failing to do so will result in the partnership being disbanded DO YOU AGREE )",
+      "Whats your name",
+      "What Your Company Name",
+      "What Is Your Position In The Company",
+      "What is your Discord username?",
+      "Please provide a link to your VTC Page below!",
+      "Tell us about yourself and your company! why would you like to partner with us and what can you bring to the table!",
+    ]
+  },
+  EventForm: {
+    name: "Need CC For Your Event Form",
+    emoji: "📅",
+    questions: [
+      "Please keep in mind our booking requirements: A fully completed TMP event page is required (except for CC-Scheme members)., Remain in the Green Light CC Discord server and the specific ticket throughout the build up to the event. Leaving the server will be seen as a cancellation of your event!, Slot booking must close at least 3 days before the event., Your event cannot depart before 17:00 UTC (except for CC-Scheme members)., Your route may not exceed 1100 KM (684 ml)., ETS events are only accepted with base game and  DLC's Maps., Your event must have a minimum of 40-50 confirmed event sever  attendees (except for CC-Scheme members). DO YOU AGREE  )",
+      "What is your email",
+      "What is your name ",
+      "What is your VTC name",
+      "What Server will your convoy be on, Please choose one",
+      "What is your convoy name ",
+      "What date would you like to book us for ",
+      "What time is the convoy meet up (PLEASE USE UK TIME)",
+      "what time do you want the convoy to depart (PLEASE USE UK TIME)",
+      "Where is the convoy start location ",
+      "What depot do you want the lead to start from ",
+      "What is the convoy end destination ",
+      "What depot do you want the lead to end at",
+      "Event link for Truckers MP",
+      "Discord Link",
+      "How Many Is Come On Your Convoy From Your VTC",
+      "What Team do you need for your VTC convoy on the day",
+      "What map DLC'S  will be requirement in the convoy  please tick All the one's  you are use",
+      "please send convoy map route in a ticket ",
+      "Information OF Your Event",
+      "I understand that I have Booked Green Light Convoy Control Team To Do My Event. Thank You For Book Us Today for Your Event From  Green Light CC Team Founder"
+    ]
+  },
+  EventForm: {
+    name: "Green Light Convoy Control Apply To become as a driver",
+    emoji: "🚚",
+    questions: [
+      "Requirements: Own all DLCS Must be able to join a VC and listen to instruction Must Understand and Follow instructions given in English Must be willing to Follow instructions Must be to Attend 1 event every 2 Months (this may change in future) Must have a stable connection Use the CC Company Profile Must use the CC Company Skin at all times You Must be over 17 to apply Keep to 56 MPH )",
+      "Whats your name",
+      "What is your discord name",
+      "Your Date Of Birth",
+      "Are your over the age of 17",
+      "Please provide link to your Truckers MP account below ",
+      "IS Your  Truckers MP account full Active ",
+      "What DLCs do you own",
+      "What Role Are You Applying For on ",
+      "What SCS software titles do you currently own/play ",
+      "How many hours do you currently have in ETS2 or ATS? ",
+      "Why you choose to be a driver  for Green Light CC Company  ",
+      "Tell us a bit about yourself, what are your hobbies? why would you like to become a member of the CC  team? what can YOU bring to the table!",
+      "How did you find us?"
+    ]
+  },
 };
 
 /* ==========================================================
