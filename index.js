@@ -116,7 +116,7 @@ const rest = new REST({ version: "10" }).setToken(config.token);
     );
     console.log("Successfully reloaded application (/) commands.");
   } catch (error) {
-    console.error(error);
+    console.error("Error refreshing commands:", error);
   }
 })();
 
@@ -149,150 +149,180 @@ client.once(Events.ClientReady, async () => {
         .setFooter({ text: config.embeds.footerText })
         .setTimestamp();
       statsChannel.send({ embeds: [statsEmbed] });
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error("Stats Log failed:", err); }
   }
 });
 
 /* ================= INTERACTIONS ================= */
 client.on(Events.InteractionCreate, async interaction => {
-  if (interaction.isChatInputCommand()) {
-    const current = commandUsage.get(interaction.commandName) || 0;
-    commandUsage.set(interaction.commandName, current + 1);
-  }
+  try {
+    if (interaction.isChatInputCommand()) {
+      const current = commandUsage.get(interaction.commandName) || 0;
+      commandUsage.set(interaction.commandName, current + 1);
+    }
 
-  // --- HELP COMMAND ---
-  if (interaction.isChatInputCommand() && interaction.commandName === "help") {
-    const helpEmbed = new EmbedBuilder()
-      .setTitle("📜 Bot Command Help")
-      .setDescription("Welcome to the **Convoy & Ticket System**. Here are all available commands:")
-      .addFields(
-        { name: "🛠️ Staff Commands", value: "`/panel` - Deploy Tickets/App panels\n`/devlog` - View system status" },
-        { name: "🚛 General Commands", value: "`/help` - Show this list\n`/convoy` - Start a convoy mini-game" },
-        { name: "🎫 Tickets", value: "Use the panel select menu to open a support ticket." },
-        { name: "📄 Applications", value: "Use the application panel to join the team or partner with us." }
-      )
-      .setColor(config.embeds.color)
-      .setFooter({ text: config.embeds.footerText });
-    return interaction.reply({ embeds: [helpEmbed] });
-  }
+    // --- HELP COMMAND ---
+    if (interaction.isChatInputCommand() && interaction.commandName === "help") {
+      const helpEmbed = new EmbedBuilder()
+        .setTitle("📜 Bot Command Help")
+        .setDescription("Welcome to the **Convoy & Ticket System**. Here are all available commands:")
+        .addFields(
+          { name: "🛠️ Staff Commands", value: "`/panel` - Deploy Tickets/App panels\n`/devlog` - View system status" },
+          { name: "🚛 General Commands", value: "`/help` - Show this list\n`/convoy` - Start a convoy mini-game" },
+          { name: "🎫 Tickets", value: "Use the panel select menu to open a support ticket." },
+          { name: "📄 Applications", value: "Use the application panel to join the team." }
+        )
+        .setColor(config.embeds.color)
+        .setFooter({ text: config.embeds.footerText });
+      return interaction.reply({ embeds: [helpEmbed] });
+    }
 
-  // --- CONVOY MINI-GAME ---
-  if (interaction.isChatInputCommand() && interaction.commandName === "convoy") {
-    const convoyEmbed = new EmbedBuilder()
-      .setTitle("🚛 Convoy Command Center")
-      .setDescription("Ready to depart? Perform pre-convoy checks below!")
-      .addFields({ name: "Status", value: "🟠 Waiting for checks..." })
-      .setColor(config.embeds.color)
-      .setFooter({ text: config.embeds.footerText });
+    // --- CONVOY MINI-GAME ---
+    if (interaction.isChatInputCommand() && interaction.commandName === "convoy") {
+      const convoyEmbed = new EmbedBuilder()
+        .setTitle("🚛 Convoy Command Center")
+        .setDescription("Ready to depart? Perform pre-convoy checks below!")
+        .addFields({ name: "Status", value: "🟠 Waiting for checks..." })
+        .setColor(config.embeds.color)
+        .setFooter({ text: config.embeds.footerText });
 
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId("convoy_check").setLabel("Check Vehicles").setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId("convoy_start").setLabel("Depart Now!").setStyle(ButtonStyle.Success).setDisabled(true)
-    );
-
-    return interaction.reply({ embeds: [convoyEmbed], components: [row] });
-  }
-
-  // Handle Convoy Button Logic
-  if (interaction.isButton()) {
-    if (interaction.customId === "convoy_check") {
-      const editedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
-        .setFields({ name: "Status", value: "✅ All vehicles inspected. Ready for departure!" });
-      
-      const enabledRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId("convoy_check").setLabel("Check Vehicles").setStyle(ButtonStyle.Secondary).setDisabled(true),
-        new ButtonBuilder().setCustomId("convoy_start").setLabel("Depart Now!").setStyle(ButtonStyle.Success)
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId("convoy_check").setLabel("Check Vehicles").setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId("convoy_start").setLabel("Depart Now!").setStyle(ButtonStyle.Success).setDisabled(true)
       );
-      
-      return interaction.update({ embeds: [editedEmbed], components: [enabledRow] });
+
+      return interaction.reply({ embeds: [convoyEmbed], components: [row] });
     }
 
-    if (interaction.customId === "convoy_start") {
-      const finalEmbed = EmbedBuilder.from(interaction.message.embeds[0])
-        .setTitle("🚛 Convoy is Rolling!")
-        .setDescription(`Departure led by **${interaction.user.username}**. Drive safe!`)
-        .setFields({ name: "Status", value: "🟢 En route to destination." });
-      
-      return interaction.update({ embeds: [finalEmbed], components: [] });
+    // Handle Convoy Buttons
+    if (interaction.isButton()) {
+      if (interaction.customId === "convoy_check") {
+        const editedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
+          .setFields({ name: "Status", value: "✅ All vehicles inspected. Ready for departure!" });
+        const enabledRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId("convoy_check").setLabel("Check Vehicles").setStyle(ButtonStyle.Secondary).setDisabled(true),
+          new ButtonBuilder().setCustomId("convoy_start").setLabel("Depart Now!").setStyle(ButtonStyle.Success)
+        );
+        return interaction.update({ embeds: [editedEmbed], components: [enabledRow] });
+      }
+
+      if (interaction.customId === "convoy_start") {
+        const finalEmbed = EmbedBuilder.from(interaction.message.embeds[0])
+          .setTitle("🚛 Convoy is Rolling!")
+          .setDescription(`Departure led by **${interaction.user.username}**. Drive safe!`)
+          .setFields({ name: "Status", value: "🟢 En route to destination." });
+        return interaction.update({ embeds: [finalEmbed], components: [] });
+      }
+
+      if (interaction.customId === "ticket_close") {
+        await interaction.reply("Closing ticket...");
+        setTimeout(() => interaction.channel.delete().catch(() => {}), 3000);
+      }
     }
-  }
 
-  // --- PREVIOUS COMMANDS (DEVLOG, PANEL, ETC) ---
-  if (interaction.isChatInputCommand() && interaction.commandName === "devlog") {
-    if (!isStaff(interaction.member)) return interaction.reply({ content: "❌ Staff only.", ephemeral: true });
-    
-    let mostUsed = "None";
-    let maxCount = 0;
-    commandUsage.forEach((count, name) => { if (count > maxCount) { maxCount = count; mostUsed = `/${name} (${count})`; } });
+    // --- DEVLOG ---
+    if (interaction.isChatInputCommand() && interaction.commandName === "devlog") {
+      if (!isStaff(interaction.member)) return interaction.reply({ content: "❌ Staff only.", ephemeral: true });
+      let mostUsed = "None";
+      let maxCount = 0;
+      commandUsage.forEach((count, name) => { if (count > maxCount) { maxCount = count; mostUsed = `/${name} (${count})`; } });
 
-    const devLogEmbed = new EmbedBuilder()
-      .setTitle("🛠️ Development & Status Log")
-      .setColor(config.embeds.color)
-      .addFields(
-        { name: "⏱️ Uptime", value: getUptime(), inline: true },
-        { name: "📊 Most Used Command", value: mostUsed, inline: true },
-        { name: "🐛 Bug Report Status", value: "System stable.", inline: false }
-      )
-      .setFooter({ text: config.embeds.footerText })
-      .setTimestamp();
-    return interaction.reply({ embeds: [devLogEmbed] });
-  }
+      const devLogEmbed = new EmbedBuilder()
+        .setTitle("🛠️ Development & Status Log")
+        .setColor(config.embeds.color)
+        .addFields(
+          { name: "⏱️ Uptime", value: getUptime(), inline: true },
+          { name: "📊 Most Used Command", value: mostUsed, inline: true },
+          { name: "🐛 Bug Status", value: "System healthy.", inline: false }
+        )
+        .setFooter({ text: config.embeds.footerText });
+      return interaction.reply({ embeds: [devLogEmbed] });
+    }
 
-  // ... (Panel, Ticket, and Application code remains the same as before) ...
-  if (interaction.isChatInputCommand() && interaction.commandName === "panel") {
-    if (!isStaff(interaction.member)) return interaction.reply({ content: "❌ Staff only.", ephemeral: true });
-    try {
+    // --- PANEL DEPLOY ---
+    if (interaction.isChatInputCommand() && interaction.commandName === "panel") {
+      if (!isStaff(interaction.member)) return interaction.reply({ content: "❌ Staff only.", ephemeral: true });
+      
       const ticketChannel = await client.channels.fetch(config.ticketPanelChannelId);
       const appChannel = await client.channels.fetch(config.applicationPanelChannelId);
-      const ticketMenu = new StringSelectMenuBuilder().setCustomId("ticket_select").setPlaceholder("Select ticket type").addOptions({ label: "Support", value: "support" }, { label: "Report", value: "report" });
-      const ticketEmbed = new EmbedBuilder().setTitle(config.embeds.ticketPanel.title).setDescription(config.embeds.ticketPanel.description).setColor(config.embeds.color).setFooter({ text: config.embeds.footerText });
-      await ticketChannel.send({ embeds: [ticketEmbed], components: [new ActionRowBuilder().addComponents(ticketMenu)] });
-      
-      const appMenu = new StringSelectMenuBuilder().setCustomId("application_select").setPlaceholder("Select application").addOptions(Object.keys(applications).map(k => ({ label: applications[k].name, value: k })));
-      const appEmbed = new EmbedBuilder().setTitle(config.embeds.appPanel.title).setDescription(config.embeds.appPanel.description).setColor(config.embeds.color).setFooter({ text: config.embeds.footerText });
-      await appChannel.send({ embeds: [appEmbed], components: [new ActionRowBuilder().addComponents(appMenu)] });
-      interaction.reply({ content: "✅ Panels deployed.", ephemeral: true });
-    } catch (e) { interaction.reply({ content: "❌ Error.", ephemeral: true }); }
-  }
 
-  if (interaction.isStringSelectMenu() && interaction.customId === "ticket_select") {
-    const channel = await interaction.guild.channels.create({ name: `${interaction.values[0]}-${interaction.user.username}`, type: ChannelType.GuildText, parent: config.ticketCategoryId, permissionOverwrites: [{ id: interaction.guild.id, deny: [PermissionsBitField.Flags.ViewChannel] }, { id: interaction.user.id, allow: [PermissionsBitField.Flags.ViewChannel] }, { id: config.supportRoleId, allow: [PermissionsBitField.Flags.ViewChannel] }] });
-    const welcomeEmbed = new EmbedBuilder().setTitle(config.embeds.welcomeTicket.title).setDescription(config.embeds.welcomeTicket.description).setFooter({ text: config.embeds.footerText }).setColor(config.embeds.color);
-    await channel.send({ content: `${interaction.user}`, embeds: [welcomeEmbed], components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("ticket_close").setLabel("Close").setStyle(ButtonStyle.Danger))] });
-    interaction.reply({ content: `🎫 Ticket: ${channel}`, ephemeral: true });
-  }
+      const tMenu = new StringSelectMenuBuilder().setCustomId("ticket_select").setPlaceholder("Select ticket type").addOptions(
+        { label: "Support", value: "support" }, { label: "Report", value: "report" }
+      );
+      const aMenu = new StringSelectMenuBuilder().setCustomId("application_select").setPlaceholder("Select application").addOptions(
+        Object.keys(applications).map(k => ({ label: applications[k].name, value: k }))
+      );
 
-  if (interaction.isButton() && interaction.customId === "ticket_close") {
-    await interaction.reply("Closing...");
-    setTimeout(() => interaction.channel.delete().catch(() => {}), 3000);
-  }
+      await ticketChannel.send({
+        embeds: [new EmbedBuilder().setTitle(config.embeds.ticketPanel.title).setDescription(config.embeds.ticketPanel.description).setColor(config.embeds.color).setFooter({ text: config.embeds.footerText })],
+        components: [new ActionRowBuilder().addComponents(tMenu)]
+      });
 
-  if (interaction.isStringSelectMenu() && interaction.customId === "application_select") {
-    const app = applications[interaction.values[0]];
-    activeApplications.set(interaction.user.id, { app, answers: [], index: 0 });
-    const startEmbed = new EmbedBuilder().setTitle(`Started: ${app.name}`).setDescription(`Q1: ${app.questions[0]}`).setFooter({ text: config.embeds.footerText }).setColor(config.embeds.color);
-    try { await interaction.user.send({ embeds: [startEmbed] }); interaction.reply({ content: "📬 Check DMs.", ephemeral: true }); }
-    catch (e) { interaction.reply({ content: "❌ DMs off.", ephemeral: true }); }
+      await appChannel.send({
+        embeds: [new EmbedBuilder().setTitle(config.embeds.appPanel.title).setDescription(config.embeds.appPanel.description).setColor(config.embeds.color).setFooter({ text: config.embeds.footerText })],
+        components: [new ActionRowBuilder().addComponents(aMenu)]
+      });
+
+      return interaction.reply({ content: "✅ Panels deployed.", ephemeral: true });
+    }
+
+    // --- SELECT MENUS ---
+    if (interaction.isStringSelectMenu()) {
+      if (interaction.customId === "ticket_select") {
+        const channel = await interaction.guild.channels.create({
+          name: `${interaction.values[0]}-${interaction.user.username}`,
+          type: ChannelType.GuildText,
+          parent: config.ticketCategoryId,
+          permissionOverwrites: [
+            { id: interaction.guild.id, deny: [PermissionsBitField.Flags.ViewChannel] },
+            { id: interaction.user.id, allow: [PermissionsBitField.Flags.ViewChannel] },
+            { id: config.supportRoleId, allow: [PermissionsBitField.Flags.ViewChannel] }
+          ]
+        });
+        const welcome = new EmbedBuilder().setTitle(config.embeds.welcomeTicket.title).setDescription(config.embeds.welcomeTicket.description).setFooter({ text: config.embeds.footerText }).setColor(config.embeds.color);
+        await channel.send({ content: `${interaction.user}`, embeds: [welcome], components: [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId("ticket_close").setLabel("Close").setStyle(ButtonStyle.Danger))] });
+        return interaction.reply({ content: `🎫 Ticket: ${channel}`, ephemeral: true });
+      }
+
+      if (interaction.customId === "application_select") {
+        const app = applications[interaction.values[0]];
+        activeApplications.set(interaction.user.id, { app, answers: [], index: 0 });
+        const start = new EmbedBuilder().setTitle(`Started: ${app.name}`).setDescription(`Q1: ${app.questions[0]}`).setFooter({ text: config.embeds.footerText }).setColor(config.embeds.color);
+        try { 
+          await interaction.user.send({ embeds: [start] }); 
+          return interaction.reply({ content: "📬 Check DMs.", ephemeral: true }); 
+        } catch (e) { 
+          return interaction.reply({ content: "❌ DMs off.", ephemeral: true }); 
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Interaction Error:", err);
   }
 });
 
-/* ================= APP LOGIC ================= */
+/* ================= MESSAGE LOGIC (APPS) ================= */
 client.on(Events.MessageCreate, async message => {
   if (message.author.bot || !message.channel.isDMBased()) return;
   const data = activeApplications.get(message.author.id);
   if (!data) return;
+
   data.answers.push(`Q: ${data.app.questions[data.index]}\nA: ${message.content}`);
   data.index++;
+
   if (data.index < data.app.questions.length) {
     message.channel.send({ embeds: [new EmbedBuilder().setTitle(data.app.name).setDescription(`Q${data.index + 1}: ${data.app.questions[data.index]}`).setFooter({ text: config.embeds.footerText }).setColor(config.embeds.color)] });
   } else {
     activeApplications.delete(message.author.id);
-    message.channel.send({ embeds: [new EmbedBuilder().setTitle("Submitted").setDescription("✅ Sent to staff.").setFooter({ text: config.embeds.footerText }).setColor(config.embeds.color)] });
-    const reviewChannel = await client.channels.fetch(config.applicationReviewChannel);
-    const fileName = `app-${message.author.username}.txt`;
-    fs.writeFileSync(fileName, data.answers.join("\n\n"));
-    await reviewChannel.send({ content: `New App: ${message.author.tag}`, files: [new AttachmentBuilder(fileName)] });
-    fs.unlinkSync(fileName);
+    message.channel.send({ embeds: [new EmbedBuilder().setTitle("Submitted").setDescription("✅ Your application has been sent.").setFooter({ text: config.embeds.footerText }).setColor(config.embeds.color)] });
+    
+    try {
+      const reviewChannel = await client.channels.fetch(config.applicationReviewChannel);
+      const fileName = `app-${message.author.username}.txt`;
+      fs.writeFileSync(fileName, data.answers.join("\n\n"));
+      await reviewChannel.send({ content: `New Application: ${message.author.tag}`, files: [new AttachmentBuilder(fileName)] });
+      fs.unlinkSync(fileName);
+    } catch (err) { console.error("Review send failed:", err); }
   }
 });
 
