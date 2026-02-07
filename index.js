@@ -271,12 +271,12 @@ client.on(Events.InteractionCreate, async interaction => {
       const convoyEmbed = new EmbedBuilder()
         .setTitle("🚛 Convoy Command Center")
         .setDescription("Ready to depart? Perform pre-convoy checks below!")
-        .addFields({ name: "Status", value: "🟠 Waiting for checks..." })
+        .addFields({ name: "Convoy Status", value: "🟠 Waiting for safety inspections..." })
         .setColor(config.embeds.color)
         .setFooter({ text: config.embeds.footerText });
 
       const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId("convoy_check").setLabel("Check Vehicles").setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId("convoy_check").setLabel("Perform Safety Check").setStyle(ButtonStyle.Primary),
         new ButtonBuilder().setCustomId("convoy_start").setLabel("Depart Now!").setStyle(ButtonStyle.Success).setDisabled(true)
       );
 
@@ -286,20 +286,49 @@ client.on(Events.InteractionCreate, async interaction => {
     // Handle Buttons
     if (interaction.isButton()) {
       if (interaction.customId === "convoy_check") {
+        const successChance = Math.random();
+        let statusText = "";
+        let buttonState = false; // Whether to enable the Start button
+
+        if (successChance > 0.3) {
+          // Success case (70% chance)
+          statusText = "✅ **Safety Check Passed!** All engines are green, tires are at pressure, and manifests are signed.";
+          buttonState = false; // False here means NOT disabled (so enabled)
+        } else {
+          // Failure case (30% chance)
+          const failures = ["Engine leak detected!", "Flat tire on trailer #4!", "Missing lead driver documentation!", "Fuel pump failure!"];
+          statusText = `❌ **Safety Check Failed!** ${failures[Math.floor(Math.random() * failures.length)]} Fix the issue and try again.`;
+          buttonState = true; // True here means button is disabled
+        }
+
         const editedEmbed = EmbedBuilder.from(interaction.message.embeds[0])
-          .setFields({ name: "Status", value: "✅ All vehicles inspected. Ready for departure!" });
-        const enabledRow = new ActionRowBuilder().addComponents(
-          new ButtonBuilder().setCustomId("convoy_check").setLabel("Check Vehicles").setStyle(ButtonStyle.Secondary).setDisabled(true),
-          new ButtonBuilder().setCustomId("convoy_start").setLabel("Depart Now!").setStyle(ButtonStyle.Success)
+          .setFields({ name: "Convoy Status", value: statusText });
+        
+        const updatedRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId("convoy_check").setLabel("Re-check Vehicles").setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder().setCustomId("convoy_start").setLabel("Depart Now!").setStyle(ButtonStyle.Success).setDisabled(buttonState)
         );
-        return interaction.update({ embeds: [editedEmbed], components: [enabledRow] });
+        
+        return interaction.update({ embeds: [editedEmbed], components: [updatedRow] });
       }
 
       if (interaction.customId === "convoy_start") {
+        const events = [
+          "Traffic jam on the highway! Arrival delayed.",
+          "Clear skies and open roads. Perfect trip!",
+          "Police checkpoint encountered. Everyone showed their permits.",
+          "Scenic route chosen. The drivers are enjoying the view!",
+          "A minor fender-bender happened, but we are back on the road!"
+        ];
+        const randomEvent = events[Math.floor(Math.random() * events.length)];
+
         const finalEmbed = EmbedBuilder.from(interaction.message.embeds[0])
           .setTitle("🚛 Convoy is Rolling!")
-          .setDescription(`Departure led by **${interaction.user.username}**. Drive safe!`)
-          .setFields({ name: "Status", value: "🟢 En route to destination." });
+          .setDescription(`Departure led by **${interaction.user.username}**.`)
+          .setFields(
+            { name: "Journey Event", value: `📈 ${randomEvent}` },
+            { name: "Status", value: "🟢 En route to destination." }
+          );
         return interaction.update({ embeds: [finalEmbed], components: [] });
       }
 
